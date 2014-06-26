@@ -113,11 +113,11 @@ task pom << {
  */
 
 project.ext {
-    gitrwscm = sprintf("git@github.com:fge/%s", name);
-    gitroscm = sprintf("https://github.com/fge/%s.git", name);
-    projectURL = sprintf("https://github.com/fge/%s", name);
-    sonatypeStaging = "https://oss.sonatype.org/service/local/staging/deploy/maven2/";
-    sonatypeSnapshots = "https://oss.sonatype.org/content/repositories/snapshots/";
+    gitrwscm = sprintf("git@github.com:atlassian/%s", name);
+    gitroscm = sprintf("https://github.com/atlassian/%s.git", name);
+    projectURL = sprintf("https://github.com/atlassian/%s", name);
+    atlassianRelease = "https://maven.atlassian.com/content/groups/public/";
+    atlassianSnapshots = "https://maven.atlassian.com/content/repositories/atlassian-private-snapshot/";
 };
 
 task checkSigningRequirements << {
@@ -135,25 +135,14 @@ task checkSigningRequirements << {
 }
 
 uploadArchives {
-    dependsOn(checkSigningRequirements);
     repositories {
         mavenDeployer {
-            beforeDeployment {
-                MavenDeployment deployment -> signing.signPom(deployment);
+            repository(url: "${atlassianRelease}",id: "atlassian-public") {
+
             }
 
-            repository(url: "${sonatypeStaging}") {
-                authentication(
-                    userName: project.properties["sonatypeUsername"],
-                    password: project.properties["sonatypePassword"]
-                );
-            }
+            snapshotRepository(url: "${atlassianSnapshots}", id: "atlassian-private-snapshot") {
 
-            snapshotRepository(url: "${sonatypeSnapshots}") {
-                authentication(
-                    userName: project.properties["sonatypeUsername"],
-                    password: project.properties["sonatypePassword"]
-                );
             }
         }
     }
