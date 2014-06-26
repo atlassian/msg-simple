@@ -116,7 +116,7 @@ project.ext {
     gitrwscm = sprintf("git@github.com:atlassian/%s", name);
     gitroscm = sprintf("https://github.com/atlassian/%s.git", name);
     projectURL = sprintf("https://github.com/atlassian/%s", name);
-    atlassianRelease = "https://maven.atlassian.com/content/groups/public/";
+    atlassianRelease = "https://maven.atlassian.com/content/repositories/atlassian-3rdparty/";
     atlassianSnapshots = "https://maven.atlassian.com/content/repositories/atlassian-private-snapshot/";
 };
 
