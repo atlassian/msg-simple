@@ -138,11 +138,11 @@ uploadArchives {
     repositories {
         mavenDeployer {
             repository(url: "${atlassianRelease}",id: "atlassian-public") {
-
+                authentication(userName: mavenUser, password: mavenPassword);
             }
 
             snapshotRepository(url: "${atlassianSnapshots}", id: "atlassian-private-snapshot") {
-
+                authentication(userName: mavenUser, password: mavenPassword);
             }
         }
     }
