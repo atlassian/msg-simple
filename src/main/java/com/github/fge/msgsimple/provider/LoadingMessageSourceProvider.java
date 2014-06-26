@@ -29,16 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -89,6 +80,7 @@ public final class LoadingMessageSourceProvider
         public Thread newThread(final Runnable r)
         {
             final Thread ret = factory.newThread(r);
+            ret.setName(LoadingMessageSourceProvider.class.getSimpleName());
             ret.setDaemon(true);
             return ret;
         }
@@ -97,6 +89,9 @@ public final class LoadingMessageSourceProvider
     private static final InternalBundle BUNDLE = InternalBundle.getInstance();
 
     private static final int NTHREADS = 3;
+    
+    //We need a central place to put executors so we can shut them all down on request
+    private static final CopyOnWriteArrayList<ExecutorService> executors = new CopyOnWriteArrayList<ExecutorService>();
 
     /*
      * Executor service for loading tasks
@@ -146,6 +141,8 @@ public final class LoadingMessageSourceProvider
          * Mimic an already enabled expiry if, in fact, there is none
          */
         expiryEnabled = new AtomicBoolean(expiryDuration == 0L);
+        
+        executors.addIfAbsent(service);
     }
 
     /**
@@ -156,6 +153,23 @@ public final class LoadingMessageSourceProvider
     public static Builder newBuilder()
     {
         return new Builder();
+    }
+
+    /**
+     * Shuts down all current ExecutorServices by calling shutdownNow() on each of them.
+     * This is handy for clients that need to explicitly destroy executors/threads before the jvm is terminated.
+     * 
+     * For example, in an OSGi application, you may need to stop a bundle using this and start it up again later without
+     * a JVM restart. Without a way to shutdown the executors, it could lead to OOMEs.
+     */
+    public static void shutdown()
+    {
+        for(ExecutorService e : executors)
+        {
+            e.shutdownNow();
+        }
+        
+        executors.clear();
     }
 
     @Override
