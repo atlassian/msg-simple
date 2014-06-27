@@ -93,11 +93,13 @@ public final class LoadingMessageSourceProvider
     //We need a central place to put executors so we can shut them all down on request
     private static final CopyOnWriteArrayList<ExecutorService> executors = new CopyOnWriteArrayList<ExecutorService>();
 
+    //Need to track if we're shutdown or not.
+    private static final AtomicBoolean shutdown = new AtomicBoolean(false);
+
     /*
      * Executor service for loading tasks
      */
-    private final ExecutorService service
-        = Executors.newFixedThreadPool(NTHREADS, THREAD_FACTORY);
+    private ExecutorService service = Executors.newFixedThreadPool(NTHREADS, THREAD_FACTORY);
 
     /*
      * Loader and default source
@@ -169,12 +171,29 @@ public final class LoadingMessageSourceProvider
             e.shutdownNow();
         }
         
-        executors.clear();
+        shutdown.set(true);
+    }
+
+    /**
+     * Restarts all ExecutorServices that have been shutdown
+     */
+    public static void restartIfNeeded()
+    {
+        if(shutdown.get())
+        {
+            shutdown.set(false);
+        }
     }
 
     @Override
     public MessageSource getMessageSource(final Locale locale)
     {
+        if(shutdown.get())
+        {
+            return defaultSource;
+        }
+        
+        ensureServiceIsReady();
         /*
          * Set up expiry, if necessary
          */
@@ -247,6 +266,18 @@ public final class LoadingMessageSourceProvider
              * BOOM: CancellationException
              */
             return defaultSource;
+        }
+    }
+
+    private void ensureServiceIsReady()
+    {
+        if(null == service || service.isShutdown() || service.isTerminated())
+        {
+            executors.remove(service);
+            
+            service = Executors.newFixedThreadPool(NTHREADS, THREAD_FACTORY);
+            
+            executors.addIfAbsent(service);
         }
     }
 
